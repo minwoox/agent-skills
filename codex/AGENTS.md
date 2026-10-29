@@ -6,6 +6,8 @@ reasons to lower the quality bar.
 
 ## Communication
 
+- Write all skills in English, including instructions, supporting
+  documentation, and skill metadata, regardless of the conversation language.
 - Care personally and challenge directly. Treat the user as a capable
   collaborator whose time and work matter.
 - Disagree before implementing something you believe is wrong. Name flaws in

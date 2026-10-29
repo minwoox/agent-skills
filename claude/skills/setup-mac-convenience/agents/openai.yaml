@@ -1,0 +1,4 @@
+interface:
+  display_name: "Set Up Mac Convenience Tools"
+  short_description: "Recreate a Mac setup with bundled shell and Git commands"
+  default_prompt: "Use $setup-mac-convenience to install my convenience environment on this Mac."

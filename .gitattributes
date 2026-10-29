@@ -1,0 +1,3 @@
+# Preserve the upstream fasd source's final blank line.
+claude/skills/setup-mac-convenience/assets/vendor/fasd/fasd whitespace=-blank-at-eof
+codex/skills/setup-mac-convenience/assets/vendor/fasd/fasd whitespace=-blank-at-eof

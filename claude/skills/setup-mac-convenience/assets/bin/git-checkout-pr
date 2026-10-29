@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+log() {
+  printf '\033[1;32m%s\033[0m\n' "$*"
+}
+
+choice() {
+  local search="${1-}"
+  local choices length selected
+
+  choices="$(
+    gh pr list --json number,title,author --limit 50 --search "is:open sort:updated-desc $search" |
+    jq -r '.[] | "#\(.number) \u001b[1m\(.title)\u001b[0m \u001b[0;32m@\(.author.login)\u001b[0m"'
+  )"
+  if [[ -z "$choices" ]]; then
+    printf 'No open pull requests matched the search.\n' >&2
+    exit 1
+  fi
+
+  length="$(printf '%s\n' "$choices" | wc -l)"
+  if (( length == 1 )); then
+    selected="$choices"
+  else
+    selected="$(
+      printf '%s\n' "$choices" |
+      fzf --ansi --prompt='Choose the pull request to check out: '
+    )"
+  fi
+
+  if [[ "$selected" =~ ^#([0-9]+)[[:space:]] ]]; then
+    PR_ID="${BASH_REMATCH[1]}"
+  else
+    printf 'Failed to parse the choice:\n%s\n' "$selected" >&2
+    exit 1
+  fi
+}
+
+case $# in
+0)
+  choice
+  ;;
+1)
+  if [[ $1 =~ ^[0-9]+$ ]]; then
+    PR_ID="$1"
+  else
+    choice "$1"
+  fi
+  ;;
+*)
+  printf 'Usage: %s [<pull request ID> or <search keyword>]\n' "$0" >&2
+  exit 1
+  ;;
+esac
+
+PR_INFO="$(gh pr view "$PR_ID" --json 'headRepositoryOwner,headRefName,url')"
+PR_AUTHOR="$(printf '%s\n' "$PR_INFO" | jq -er '.headRepositoryOwner.login // error("The pull request head repository is unavailable")')"
+PR_BRANCH="$(printf '%s\n' "$PR_INFO" | jq -er '.headRefName')"
+PR_URL="$(printf '%s\n' "$PR_INFO" | jq -er '.url')"
+LOCAL_BRANCH="pr-$PR_ID-$PR_AUTHOR-$PR_BRANCH"
+
+PR_ID_HYPERLINK="$(printf '\033]8;;%s\007#%s\033]8;;\007' "$PR_URL" "$PR_ID")"
+if git show-ref --verify --quiet "refs/heads/$LOCAL_BRANCH"; then
+  if [[ "$(git branch --show-current)" == "$LOCAL_BRANCH" ]]; then
+    printf 'You are already on the branch %s for %s.\n' "$LOCAL_BRANCH" "$PR_ID_HYPERLINK"
+  else
+    log "You already have the branch $LOCAL_BRANCH for $PR_ID_HYPERLINK; switching to the local branch .."
+    git checkout "$LOCAL_BRANCH"
+  fi
+else
+  log "Checking out the pull request $PR_ID_HYPERLINK into $LOCAL_BRANCH .."
+  gh pr checkout "$PR_ID" -b "$LOCAL_BRANCH"
+fi

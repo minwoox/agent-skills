@@ -1,0 +1,13 @@
+#!/bin/sh
+f() {
+  current=$(git symbolic-ref --quiet --short HEAD) || return
+  base=master
+  if git show-ref --verify --quiet refs/heads/main; then
+    base=main
+  fi
+  if [ "$current" = "$base" ]; then
+    echo "Already on $base"
+    return
+  fi
+  git switch "$base" && git branch -d -- "$current"
+}; f

@@ -1,29 +1,38 @@
 # Personal agent skills
 
-Claude Code와 Codex에서 사용하는 개인 스킬, 명령, 공통 작업 지침을 보관합니다.
-설치된 파일의 사본을 관리하며, 홈 디렉터리와 자동으로 동기화하지 않습니다.
+Personal skills, commands, and global work rules for Claude Code and Codex.
+This repository stores copies of installed files. It does not automatically
+synchronize with the home directory.
 
-## 구성
+## Layout
 
-| 저장소 경로 | 설치 위치 | 내용 |
+| Repository path | Installation path | Contents |
 | --- | --- | --- |
-| `claude/skills/` | `~/.claude/skills/` | Claude용 개인 스킬과 참조 문서 |
-| `claude/commands/` | `~/.claude/commands/` | Git, PR, 테스트 명령 |
-| `claude/CLAUDE.md` | `~/.claude/CLAUDE.md` | Claude 전역 작업 지침 |
-| `codex/skills/` | `~/.codex/skills/` | Codex용 개인 스킬과 참조 문서 |
-| `codex/AGENTS.md` | `~/.codex/AGENTS.md` | Codex 전역 작업 지침 |
-| `agents/skills/` | `~/.agents/skills/` | Codex로 이관된 Git 및 PR 스킬 |
+| `claude/skills/` | `~/.claude/skills/` | Claude skills and supporting files |
+| `claude/commands/` | `~/.claude/commands/` | Git, PR, and test commands |
+| `claude/CLAUDE.md` | `~/.claude/CLAUDE.md` | Claude global work rules |
+| `codex/skills/` | `~/.codex/skills/` | Codex skills and supporting files |
+| `codex/AGENTS.md` | `~/.codex/AGENTS.md` | Codex global work rules |
+| `agents/skills/` | `~/.agents/skills/` | Git and PR skills migrated to Codex |
 
-개인 스킬은 `engineering-change-workflow`와 `deep-review`입니다.
-개발 워크플로는 두 도구에서 같은 내용을 사용합니다.
-`deep-review`는 각 도구의 지침 파일 탐색 방식에 맞춰져 있습니다.
+Both tools have these personal skills:
 
-플러그인 캐시, Codex 기본 제공 스킬, 인증 정보, 세션 기록, 백업은 포함하지 않습니다.
-참조 문서에 있는 원본 출처 링크는 유지합니다.
+- `engineering-change-workflow`: implementation, validation, and review rules.
+- `deep-review`: code review adapted to each tool's instruction files.
+- `setup-mac-convenience`: Mac environment restoration, including configuration
+  assets, command sources, an installer, and isolated tests.
 
-## 설치
+Keep each skill's entire directory when copying it. Supporting files include
+scripts, tests, metadata, reference documents, and vendored source licenses.
+The engineering workflow is identical in both tools.
 
-저장소 루트에서 실행합니다. 같은 경로에 파일이 있으면 저장소의 내용으로 덮어씁니다.
+Plugin caches, built-in Codex skills, credentials, session records, and backups
+are excluded. Source attribution links and vendored licenses are retained.
+
+## Install the skills
+
+Run these commands from the repository root. They overwrite files at matching
+destination paths.
 
 ```sh
 mkdir -p "$HOME/.claude" "$HOME/.codex" "$HOME/.agents"
@@ -32,31 +41,52 @@ cp -R codex/. "$HOME/.codex/"
 cp -R agents/. "$HOME/.agents/"
 ```
 
-새 세션에서 스킬을 확인합니다. Claude의 상세 리뷰는 `/deep-review`로 실행합니다.
+Check skill discovery in a new session. In Claude, use `/deep-review` for a
+review. Copying `setup-mac-convenience` installs the skill; invoke it separately
+to restore the Mac environment.
 
-## 변경 사항 저장
+## Save changes
 
-설치 위치에서 스킬을 수정했다면 변경한 파일을 위 표의 저장소 경로에 복사합니다.
-저장소에서 수정했다면 설치할 파일을 홈 디렉터리의 대응 경로에 복사합니다.
-파일 삭제와 이름 변경도 양쪽에서 직접 반영합니다.
+If you edit an installed skill, copy its changed files to the corresponding
+repository path above. If you edit the repository copy, copy the changed files
+to their installation paths. Apply deletions and renames to both locations.
 
-변경을 확인한 뒤 해당 파일만 커밋하고 푸시합니다.
+Review the changes, then commit and push only the intended files.
 
 ```sh
 git diff
 git status --short
-git add -- <변경한-파일>
+git add -- <changed-files>
 git commit
 git push
 ```
 
-## 기존 명령의 외부 의존성
+## Validate the Mac setup package
 
-Git 및 PR 명령은 현재 설치된 내용을 그대로 보관합니다.
-다음 참조 대상은 원본 환경에도 없으므로 이 저장소에 포함되어 있지 않습니다.
-해당 명령을 실행하기 전에 참조를 수정하거나 필요한 항목을 제공해야 합니다.
+On macOS, install Python 3, Git, jq, and fzf before running the tests. The tests
+also use the system Bash and zsh. From the repository root, run both copies:
 
-- PR 생성 및 설명 갱신 명령의 `github-context.sh`와 `_pr-description-generator` 에이전트
-- Codex 이관 스킬의 `~/.Codex/scripts/` 및 `~/.Codex/commands/` 경로
-- 커밋 명령의 `how-to-commit` 규칙. 현재 커밋 지침은 각 도구의 전역 지침과
-  `engineering-change-workflow/references/commits.md`에 있습니다.
+```sh
+python3 -B -m unittest discover -s codex/skills/setup-mac-convenience/tests -v
+python3 -B codex/skills/setup-mac-convenience/tests/checkout_pr.py codex/skills/setup-mac-convenience/assets/bin/git-checkout-pr
+python3 -B -m unittest discover -s claude/skills/setup-mac-convenience/tests -v
+python3 -B claude/skills/setup-mac-convenience/tests/checkout_pr.py claude/skills/setup-mac-convenience/assets/bin/git-checkout-pr
+```
+
+These tests use temporary directories, local Git repositories, fixture GitHub
+responses, and real fzf. They do not install applications or modify the current
+Mac's shell configuration. Full environment installation has additional manual
+checks described in the skill.
+
+## Existing command dependencies
+
+Git and PR commands retain their installed content. The following referenced
+helpers are absent from the source environment and are not included here.
+Provide the helpers or update their references before using those commands.
+
+- PR creation and description updates reference `github-context.sh` and a
+  `_pr-description-generator` agent.
+- Migrated Codex skills reference `~/.Codex/scripts/` and `~/.Codex/commands/`.
+- Commit commands reference a `how-to-commit` rule. Current commit guidance is
+  in each tool's global rules and
+  `engineering-change-workflow/references/commits.md`.
